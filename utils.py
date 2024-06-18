@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from pathlib import Path
 import datetime as dt
 import random
+from tqdm import tqdm
 
 from torchvision import transforms
 import PIL
@@ -18,13 +19,18 @@ def preprocessing(img):
     content_image = content_transform(img)
     content_image = content_image.cuda()
     content_image = content_image.unsqueeze(0)
-    return Variable(content_image)
+    #return Variable(content_image)
+    return content_image
 
-def postprocessing(img):
+def postprocessing(img, precast=False):
     img = torch.squeeze(img)
     img = img.permute(1, 2, 0)
     img = img.clamp(0, 255)
-    return img.detach().cpu().numpy().astype(np.uint8)
+    if precast:
+        img = img.detach().cpu().float()
+    else:
+        img = img.detach().cpu()
+    return img.numpy().astype(np.uint8)
     
 def showarray(a, fmt='png'):
     a = np.uint8(a)
@@ -81,12 +87,29 @@ def tprint(*args, **kw):
     last_print = now
 
 
-def save_results(result_path="./results.csv",
-                 test_name="offline",
-                 batch_size=1,
-                 iterations=1,
-                 model="model",
-                 inference_time=0):
-    pass
+def bench(model, samples, runs, keep_outputs=False):
+    # Just in case we have something being run
+    torch.cuda.synchronize()
 
+    # Use CUDA event to measure "only the inferences"
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    times = []
+    outputs = []
+
+    for i in tqdm(range(runs)):
+        start.record()
+        # Don't save intermediate values
+        with  torch.no_grad():
+            out_frames = [model(img) for img in tqdm(samples)]
+        end.record()
+        torch.cuda.synchronize()
+        times.append(start.elapsed_time(end))
+        if keep_outputs:
+            outputs.append(out_frames)
+
+    if keep_outputs:
+        return times, outputs
+    else:
+        return times
 
