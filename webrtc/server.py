@@ -15,12 +15,15 @@ from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, Med
 from av import VideoFrame
 
 from video_transformer import VideoTransformTrack
+import time_tracker 
+tt = time_tracker.get()
 
 ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
+
 
 
 async def index(request):
@@ -53,12 +56,6 @@ async def offer(request):
 
     log_info("Created for %s", request.remote)
 
-    # prepare local media
-    player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
-    if args.record_to:
-        recorder = MediaRecorder(args.record_to)
-    else:
-        recorder = MediaBlackhole()
 
     @pc.on("datachannel")
     def on_datachannel(channel):
@@ -80,7 +77,6 @@ async def offer(request):
 
         if track.kind == "audio":
             pc.addTrack(player.audio)
-            recorder.addTrack(track)
         elif track.kind == "video":
             print("ON TRACK")
             pc.addTrack(
@@ -88,17 +84,13 @@ async def offer(request):
                     relay.subscribe(track), transform=params["video_transform"]
                 )
             )
-            if args.record_to:
-                recorder.addTrack(relay.subscribe(track))
 
         @track.on("ended")
         async def on_ended():
             log_info("Track %s ended", track.kind)
-            await recorder.stop()
 
     # handle offer
     await pc.setRemoteDescription(offer)
-    await recorder.start()
 
     # send answer
     answer = await pc.createAnswer()

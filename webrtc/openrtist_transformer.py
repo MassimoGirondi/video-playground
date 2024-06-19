@@ -14,69 +14,35 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 import utils
-import empty_model
 
-times = {}
-processed_frames = 0
+class OpenrtistTransformer():
+    def __init__(self, model_name = "mosaic", models_path="../openrtist/models"):
 
-def create_model(model_name="mosaic"):
-    torch.cuda.init() 
-    gpu = torch.device('cuda')
+        # Assuming we have CUDA, this may not be always be the case!
+        torch.cuda.init() 
+        gpu = torch.device('cuda')
+        self.model = utils.load_model(model_name, models_path="../openrtist/models").to(torch.float16)
+        self.model.eval()
+        self.totensor=transforms.ToTensor()
 
-    if model_name == "empty_torch":
-        model = empty_model.EmptyModel().to(torch.float16)
 
-    else:
-        model = utils.load_model(model_name, models_path="../openrtist/models").to(torch.float16)
-
-    model.eval()
-    model = model.to(gpu)
-    totensor  = transforms.ToTensor()
-
-    def reset_times():
-        global times, processed_frames
-        times["preprocessing"] = []
-        times["model"] = []
-        times["postprocessing"] = []
-        processed_frames = 0
-
-    def print_times():
-        global times, processed_frames
-        pre = [t.seconds*1e6+t.microseconds for t in times["preprocessing"]] 
-        model= [t.seconds*1e6+t.microseconds for t in times["model"]] 
-        post= [t.seconds*1e6+t.microseconds for t in times["postprocessing"]] 
-
-        print("  PRE:", sum(pre) / processed_frames, "us")
-        print("  MODEL:", sum(model) / processed_frames, "us")
-        print("  POST:", sum(post) / processed_frames, "us")
-
-    reset_times()
-
-    def call(frame):
-        global times, processed_frames
-
-        t1 = dt.datetime.now()
+    def preprocessing(self, frame):
         f = totensor(frame).unsqueeze(0).to(gpu).to(torch.float16)
-        t2 = dt.datetime.now()
-        times["preprocessing"].append(t2-t1)
-        t1 = dt.datetime.now()
-        f = model(f)
-        t2 = dt.datetime.now()
-        times["model"].append(t2-t1)
-        f = utils.postprocessing(f) 
-        torch.cuda.synchronize()
-        t2 = dt.datetime.now()
-        times["postprocessing"].append(t2-t1)
-        t1 = dt.datetime.now()
-
-
-        processed_frames+=1
-        if processed_frames > 300 :
-            print_times()
-            reset_times()
-
-
-
         return f
 
-    return call
+    def postprocessing(self, frame):
+        # TODO: Do we nee all of these?
+        img = torch.squeeze(frame)
+        img = img.permute(1, 2, 0)
+        img = img.clamp(0, 255)
+        img = img.detach().cpu()
+        return img.numpy().astype(np.uint8)
+
+    def __call__(self, frame):
+        f = self.preprocessing(frame)
+        tt.step("oa_pre")
+        f = self.model(frame)
+        tt.step("oa_model")
+        f = self.postprocessing(frame)
+        tt.step("oa_post")
+        return f
