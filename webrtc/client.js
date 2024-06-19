@@ -10,6 +10,13 @@ var pc = null;
 // data channel
 var dc = null, dcInterval = null;
 
+const worker = new Worker("worker.js");
+
+
+function timestampOverlay(encodedFrame, controller) {
+      controller.enqueue(encodedFrame);
+}
+
 function createPeerConnection() {
     var config = {
         sdpSemantics: 'unified-plan'
@@ -18,6 +25,8 @@ function createPeerConnection() {
     if (document.getElementById('use-stun').checked) {
         config.iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
     }
+     //config["encodedInsertableStreams"] = true;
+
 
     pc = new RTCPeerConnection(config);
 
@@ -40,6 +49,10 @@ function createPeerConnection() {
     // connect audio / video
     pc.addEventListener('track', (evt) => {
         if (evt.track.kind == 'video')
+            // document.getElementById('video').srcObject = evt.streams[0];
+              // evt.receiver.transform = new RTCRtpScriptTransform(worker, {
+              //   name: "receiverTransform",
+              // });
             document.getElementById('video').srcObject = evt.streams[0];
         // else
         //     document.getElementById('audio').srcObject = evt.streams[0];
@@ -166,6 +179,7 @@ function start() {
             if (evt.data.substring(0, 4) === 'pong') {
                 var elapsed_ms = current_stamp() - parseInt(evt.data.substring(5), 10);
                 dataChannelLog.textContent += ' RTT ' + elapsed_ms + ' ms\n';
+                //dataChannelLog.ScrollToEnd();
             }
         });
     }
@@ -213,8 +227,11 @@ function start() {
             document.getElementById('media').style.display = 'block';
         }
         navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+
             stream.getTracks().forEach((track) => {
-                pc.addTrack(track, stream);
+                const videoSender = pc.addTrack(track, stream);
+                //const worker = new Worker("worker.js");
+                //videoSender.transform = new RTCRtpScriptTransform(worker, { name: "senderTransform", });
             });
             return negotiate();
         }, (err) => {

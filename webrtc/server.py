@@ -5,6 +5,7 @@ import logging
 import os
 import ssl
 import uuid
+from pathlib import Path
 
 import datetime as dt
 import cv2
@@ -13,133 +14,13 @@ from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
 from av import VideoFrame
 
-import openrtist_transformer
+from video_transformer import VideoTransformTrack
 
 ROOT = os.path.dirname(__file__)
 
 logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
-
-times = {}
-
-class VideoTransformTrack(MediaStreamTrack):
-    """
-    A video stream track that transforms frames from an another track.
-    """
-
-    kind = "video"
-
-    def __init__(self, track, transform):
-        super().__init__()  # don't forget this!
-        self.track = track
-        self.transform = transform
-        self.model = None
-        self.times = {}
-        self.processed_frames = 0
-
-    def reset_times(self):
-        self.times["decode"] = []
-        self.times["pre_process"] = []
-        self.times["inference"] = []
-        self.times["post_process"] = []
-        self.times["encode"] = []
-        self.processed_frames = 0
-
-    def print_times(self):
-        decode = [t.seconds*1e6+t.microseconds for t in self.times["decode"]] 
-        inference = [t.seconds*1e6+t.microseconds for t in self.times["inference"]] 
-        encode = [t.seconds*1e6+t.microseconds for t in self.times["encode"]] 
-
-        print("DECODE:", sum(decode) / self.processed_frames, "us")
-        print("INFERENCE:", sum(inference) / self.processed_frames, "us")
-        print("ENCODE:", sum(encode) / self.processed_frames, "us")
-    async def recv(self):
-        frame = await self.track.recv()
-
-        if self.transform == "cartoon":
-            print("NOT SUPPORTED")
-            img = frame.to_ndarray(format="bgr24")
-            return img
-            """
-
-            # prepare color
-            img_color = cv2.pyrDown(cv2.pyrDown(img))
-            for _ in range(6):
-                img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
-            img_color = cv2.pyrUp(cv2.pyrUp(img_color))
-
-            # prepare edges
-            img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-            img_edges = cv2.adaptiveThreshold(
-                cv2.medianBlur(img_edges, 7),
-                255,
-                cv2.ADAPTIVE_THRESH_MEAN_C,
-                cv2.THRESH_BINARY,
-                9,
-                2,
-            )
-            img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
-
-            # combine color and edges
-            img = cv2.bitwise_and(img_color, img_edges)
-
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-            """
-        elif self.transform == "edges":
-            # perform edge detection
-            img = frame.to_ndarray(format="bgr24")
-            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform == "rotate":
-            # rotate image
-            img = frame.to_ndarray(format="bgr24")
-            rows, cols, _ = img.shape
-            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
-            img = cv2.warpAffine(img, M, (cols, rows))
-
-            # rebuild a VideoFrame, preserving timing information
-            new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-            return new_frame
-        elif self.transform in ["mosaic", "cafe_gogh", "sunday_afternoon", "empty_torch"]:
-            if not self.model:
-                self.model = openrtist_transformer.create_model(self.transform)
-                self.reset_times()
-
-            t1 = dt.datetime.now()
-            img = frame.to_ndarray(format="bgr24")
-            t2 = dt.datetime.now()
-            self.times["decode"].append(t2-t1)
-            t1 = dt.datetime.now()
-            img = self.model(img)
-            t2 = dt.datetime.now()
-            self.times["inference"].append(t2-t1)
-            t1 = dt.datetime.now()
-            new_frame= VideoFrame.from_ndarray(img, format="bgr24")
-            t2 = dt.datetime.now()
-            self.times["encode"].append(t2-t1)
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
-
-            self.processed_frames+=1
-            if self.processed_frames > 300 :
-                self.print_times()
-                self.reset_times()
-
-            return new_frame
-        else:
-            return frame
 
 
 async def index(request):
@@ -148,8 +29,15 @@ async def index(request):
 
 
 async def javascript(request):
-    content = open(os.path.join(ROOT, "client.js"), "r").read()
-    return web.Response(content_type="application/javascript", text=content)
+    # Is this safe enough?
+    p = request.path
+    p = p[1:]
+    p = Path(p)
+    if os.path.exists(p):
+        content = open(os.path.join(ROOT, p), "r").read()
+        return web.Response(content_type="application/javascript", text=content)
+    else:
+        raise aiohttp.web.HTTPFound(request.path)
 
 
 async def offer(request):
@@ -194,6 +82,7 @@ async def offer(request):
             pc.addTrack(player.audio)
             recorder.addTrack(track)
         elif track.kind == "video":
+            print("ON TRACK")
             pc.addTrack(
                 VideoTransformTrack(
                     relay.subscribe(track), transform=params["video_transform"]
@@ -261,6 +150,7 @@ if __name__ == "__main__":
     app.on_shutdown.append(on_shutdown)
     app.router.add_get("/", index)
     app.router.add_get("/client.js", javascript)
+    app.router.add_get("/worker.js", javascript)
     app.router.add_post("/offer", offer)
     web.run_app(
         app, access_log=None, host=args.host, port=args.port, ssl_context=ssl_context

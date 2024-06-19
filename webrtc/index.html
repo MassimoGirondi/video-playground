@@ -34,8 +34,8 @@
     <input id="use-datachannel" checked="checked" type="checkbox"/>
     <label for="use-datachannel">Use datachannel</label>
     <select id="datachannel-parameters">
-        <option value='{"ordered": true}'>Ordered, reliable</option>
         <option value='{"ordered": false, "maxRetransmits": 0}'>Unordered, no retransmissions</option>
+        <option value='{"ordered": true}'>Ordered, reliable</option>
         <option value='{"ordered": false, "maxPacketLifetime": 500}'>Unordered, 500ms lifetime</option>
     </select>
 </div>
@@ -110,5 +110,6 @@
 <pre id="answer-sdp"></pre>
 
 <script src="client.js"></script>
+<!-- <script src="tracker.js"></script> -->
 </body>
 </html>
