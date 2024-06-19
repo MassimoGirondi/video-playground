@@ -12,6 +12,7 @@ import PIL
 import re
 
 from torchvision.transforms import v2
+from multiprocessing import Process
 from transformer_net import TransformerNet   
 content_transform = transforms.Compose([transforms.ToTensor()])
 
@@ -113,3 +114,12 @@ def bench(model, samples, runs, keep_outputs=False):
     else:
         return times
 
+
+def parallel_for(task, args, max_processes):
+    processes = [Process(target=task, args=a) for a in args]
+    for i in range(0, len(args), max_processes):
+        this_p = processes[i:min(len(args),max_processes+i)]
+        for process in this_p:
+            process.start()
+        for process in this_p:
+            process.join()
