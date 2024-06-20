@@ -15,9 +15,11 @@ from av import VideoFrame
 
 import openrtist_transformer
 import edge_transformer
+import superresolution_transformer
 
 import time_tracker 
 tt = time_tracker.get()
+
 
 class VideoTransformTrack(MediaStreamTrack):
     """
@@ -26,16 +28,20 @@ class VideoTransformTrack(MediaStreamTrack):
 
     kind = "video"
 
-    def __init__(self, track, transform):
+    def __init__(self, track, transform, device = "cuda"):
         super().__init__()  # don't forget this!
         self.track = track
         self.transform = transform
         self.model = None
         self.processed_frames = 0
+        self.device = device
+
         if transform == "edges":
             self.transformer = edge_transformer.EdgeTransformer()
         elif transform in ["mosaic", "cafe_gogh", "sunday_afternoon"]:
-            self.transformer = openrtist.OpenrtistTransformer(model)
+            self.transformer = openrtist_transformer.OpenrtistTransformer(transform, device=device)
+        elif transform in ["ninasr_b0"]:
+            self.transformer = superresolution_transformer.SuperresolutionTransformer(transform, device=device)
         else:
             self.transformer = None
 
