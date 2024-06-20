@@ -16,9 +16,13 @@ from av import VideoFrame
 import openrtist_transformer
 import edge_transformer
 import superresolution_transformer
+import dummy_transformer
+
 
 import time_tracker 
 tt = time_tracker.get()
+
+
 
 
 class VideoTransformTrack(MediaStreamTrack):
@@ -42,10 +46,17 @@ class VideoTransformTrack(MediaStreamTrack):
             self.transformer = openrtist_transformer.OpenrtistTransformer(transform, device=device)
         elif transform in ["ninasr_b0"]:
             self.transformer = superresolution_transformer.SuperresolutionTransformer(transform, device=device)
+        elif transform == "dummy":
+            self.transformer = dummy_transformer.DummyTransformer(device = "cuda")
+        elif transform == "dummy-cpu":
+            self.transformer = dummy_transformer.DummyTransformer()
+        
+
         else:
             self.transformer = None
 
     async def recv(self):
+
         tt.start()
         frame = await self.track.recv()
         tt.step("recv")
@@ -57,6 +68,7 @@ class VideoTransformTrack(MediaStreamTrack):
         tt.step("encode")
         new_frame.pts = frame.pts
         new_frame.time_base = frame.time_base
+
 
         self.processed_frames+=1
         if self.processed_frames > 100:
