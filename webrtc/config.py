@@ -10,6 +10,7 @@ models = {
                },
     'passthrough' : {'class': empty_transformer.EmptyTransformer,
                      'description': "Passthrough", 
+                     'default' : True,
                      },
     'edges' : {'class': edge_transformer.EdgeTransformer,
                      'description': "Edge detection", 
@@ -41,7 +42,8 @@ models = {
 def models_select():
     s = "<select id='video-transform'>\n"
     for k,v in models.items():
-        s+=f"<option value='{k}'>{v['description']}</option>\n"
+        default = "selected" if "default" in v else ""
+        s+=f"<option value='{k}' {default}>{v['description']}</option>\n"
     s+= "</select>\n"
     return s
 

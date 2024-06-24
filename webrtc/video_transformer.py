@@ -66,6 +66,7 @@ class VideoTransformTrack(MediaStreamTrack):
         tt.step("encode")
         new_frame.pts = frame.pts
         new_frame.time_base = frame.time_base
+        new_frame.dts = frame.dts
 
 
         self.processed_frames+=1

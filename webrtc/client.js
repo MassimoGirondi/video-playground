@@ -13,31 +13,10 @@ var pc = null;
 var dc = null, dcInterval = null;
 
 
-const worker = new Worker(`data:text/javascript,(${work.toString()})()`);
-function work() {
-  onmessage = ({data}) => {
-    // if ("timecode" in data)
-        onrtctransform({transformer: data.rtctransform}); /* needed by chrome shim: */
-  };
 
-  onrtctransform = async ({transformer: {readable, writable, options}}) => {
-    await readable.pipeThrough(new TransformStream({transform})).pipeTo(writable);
+const worker = new Worker('./timecode.js');
 
-    function transform(chunk, controller) {
-      const bytes = new Uint8Array(chunk.data);
-      const offset = 4; /* leave the first 4 bytes alone in VP8 */
-      for (let i = offset; i < bytes.length; i++) {
-        bytes[i] = ~bytes[i]; /* XOR the rest */
-      }
-      if (options.side == "receive" && !descramble) {
-        for (let i = offset+10; i < offset+12; i++) {
-          bytes[i] = ~bytes[i]; /* reverse a few XOR for spectacle */
-        }
-      }
-      controller.enqueue(chunk);
-    }
-  };
-}
+
 function createPeerConnection() {
     var config = {
         sdpSemantics: 'unified-plan',
@@ -76,6 +55,7 @@ function createPeerConnection() {
               //   name: "receiverTransform",
               // });
             document.getElementById('video').srcObject = evt.streams[0];
+            evt.receiver.transform = new RTCRtpScriptTransform( worker, {side: "receive"});
         // else
         //     document.getElementById('audio').srcObject = evt.streams[0];
     });
@@ -256,7 +236,7 @@ function start() {
 
                 console.log(videoSender);
                 console.log(worker);
-                //videoSender.transform = new RTCRtpScriptTransform(worker, {side: "send"});
+                videoSender.transform = new RTCRtpScriptTransform(worker, {side: "send"});
                 //console.log(videoSender);
                 // // Send with overlay:
                 // const worker = new Worker("worker.js");
@@ -369,7 +349,4 @@ function escapeRegExp(string) {
 
 enumerateInputDevices();
 
-// const worker = new Worker("timecode.js");
-// console.log(worker);
-//
 
