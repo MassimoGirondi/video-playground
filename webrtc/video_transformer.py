@@ -40,6 +40,7 @@ class VideoTransformTrack(MediaStreamTrack):
         self.model = None
         self.processed_frames = 0
         self.device = device
+        self.first_ts = 0
 
         if transform in config.models:
             t = config.models[transform]
@@ -67,6 +68,11 @@ class VideoTransformTrack(MediaStreamTrack):
         new_frame.pts = frame.pts
         new_frame.time_base = frame.time_base
         new_frame.dts = frame.dts
+
+        #print(frame.pts, frame.time_base, frame.time)
+        if self.first_ts == 0:
+          self.first_ts = frame.pts
+        print(frame.pts, frame.pts - self.first_ts)
 
 
         self.processed_frames+=1
