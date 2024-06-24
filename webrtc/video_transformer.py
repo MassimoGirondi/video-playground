@@ -13,6 +13,7 @@ from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
 from av import VideoFrame
 
+import config
 import openrtist_transformer
 import edge_transformer
 import superresolution_transformer
@@ -40,18 +41,15 @@ class VideoTransformTrack(MediaStreamTrack):
         self.processed_frames = 0
         self.device = device
 
-        if transform == "edges":
-            self.transformer = edge_transformer.EdgeTransformer()
-        elif transform in ["mosaic", "cafe_gogh", "sunday_afternoon"]:
-            self.transformer = openrtist_transformer.OpenrtistTransformer(transform, device=device)
-        elif transform in ["ninasr_b0"]:
-            self.transformer = superresolution_transformer.SuperresolutionTransformer(transform, device=device)
-        elif transform == "dummy":
-            self.transformer = dummy_transformer.DummyTransformer(device = "cuda")
-        elif transform == "dummy-cpu":
-            self.transformer = dummy_transformer.DummyTransformer()
-        
-
+        if transform in config.models:
+            t = config.models[transform]
+            print("Creating", t)
+            if "args" in t:
+                args = t["args"].copy()
+            else:
+                args = {}
+            args["device"] = device
+            self.transformer = t["class"](**args)
         else:
             self.transformer = None
 
@@ -77,4 +75,7 @@ class VideoTransformTrack(MediaStreamTrack):
             self.processed_frames = 0
 
         return new_frame
+
+
+
 

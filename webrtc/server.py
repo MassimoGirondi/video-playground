@@ -13,7 +13,9 @@ from aiohttp import web
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
 from av import VideoFrame
+from bs4 import BeautifulSoup as bs
 
+import config
 from video_transformer import VideoTransformTrack
 import time_tracker 
 tt = time_tracker.get()
@@ -28,6 +30,13 @@ relay = MediaRelay()
 
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
+    soup=bs(content, "html.parser")
+    el=soup.find(id="video-transform")
+    #el.replace_with(config.models_select())
+    new_el=bs(config.models_select())
+    el.replace_with(new_el)
+    content = soup.prettify()
+
     return web.Response(content_type="text/html", text=content)
 
 

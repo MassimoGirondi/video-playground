@@ -9,6 +9,7 @@ from torchvision import transforms
 from torch import nn
 import datetime as dt
 import numpy as np
+import empty_transformer
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -18,7 +19,7 @@ import utils
 import time_tracker
 tt = time_tracker.get()
 
-class OpenrtistTransformer():
+class OpenrtistTransformer(empty_transformer.EmptyTransformer):
     def __init__(self, model_name = "mosaic", models_path="../openrtist/models", device = "cpu"):
 
 
