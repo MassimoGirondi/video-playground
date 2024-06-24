@@ -26,3 +26,4 @@ In general, such workload (without profiling) uses around 10 cores (nslrack27+T4
 
 Code from https://github.com/aiortc/aiortc/blob/main/examples/server/server.py
 
+transformers: https://blog.mozilla.org/webrtc/end-to-end-encrypt-webrtc-in-all-browsers/
