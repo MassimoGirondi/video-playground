@@ -10,7 +10,8 @@ var pc = null;
 // data channel
 var dc = null, dcInterval = null;
 
-const worker = new Worker("worker.js");
+// const worker1 = new Worker("worker.js");
+// const worker2 = new Worker("worker.js");
 
 
 function timestampOverlay(encodedFrame, controller) {
@@ -229,9 +230,16 @@ function start() {
         navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
 
             stream.getTracks().forEach((track) => {
+                // No tranform:
                 const videoSender = pc.addTrack(track, stream);
-                //const worker = new Worker("worker.js");
-                //videoSender.transform = new RTCRtpScriptTransform(worker, { name: "senderTransform", });
+
+                // Send with overlay:
+                // const worker = new Worker("worker.js");
+                // videoSender.transform 
+                t = new RTCRtpScriptTransform(worker, { name: "senderTransform", });
+                console.print(t);
+                // console.log(videoSender);
+                
             });
             return negotiate();
         }, (err) => {

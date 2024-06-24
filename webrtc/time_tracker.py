@@ -21,7 +21,8 @@ class TimeTracker():
     def itervalues(self):
         return (self[key] for key in self)
     def __repr__(self):
-        avg = {k: sum(v) / len(v) for k,v in self.times.items()}
+
+        avg = {k: (sum(v) / len(v) if len(v) else 0) for k,v in self.times.items() }
         s = ", ".join([f"{k}: {v}" for k,v in avg.items()])
         return s
 

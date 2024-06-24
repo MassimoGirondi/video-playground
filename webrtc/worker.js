@@ -5,6 +5,7 @@
     return new TransformStream({
       start() {
         // Called on startup.
+        console.log("start");
       },
 
       async transform(frame, controller) {
@@ -13,6 +14,7 @@
         // let newData = new ArrayBuffer(encodedFrame.data.byteLength + 4);
         // let newView = new DataView(newData);
 
+        console.log("transform");
 
         const canvas = new OffscreenCanvas(1, 1);
         const ctx = canvas.getContext('2d');
@@ -78,9 +80,11 @@
     });
   }
 
-onrtctransform = (event) => {
+addEventListener("rtctransform", (event) => {
+  console.log("onrtctransform")
   let transform;
   if (event.transformer.options.name == "senderTransform")
+    console.log("ST");
     transform = createSenderTransform(); // returns a TransformStream
   else if (event.transformer.options.name == "receiverTransform")
     transform = createReceiverTransform(); // returns a TransformStream
