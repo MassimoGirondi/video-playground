@@ -1,3 +1,5 @@
+
+
 // get DOM elements
 var dataChannelLog = document.getElementById('data-channel'),
     iceConnectionLog = document.getElementById('ice-connection-state'),
@@ -10,17 +12,36 @@ var pc = null;
 // data channel
 var dc = null, dcInterval = null;
 
-// const worker1 = new Worker("worker.js");
-// const worker2 = new Worker("worker.js");
 
+const worker = new Worker(`data:text/javascript,(${work.toString()})()`);
+function work() {
+  onmessage = ({data}) => {
+    // if ("timecode" in data)
+        onrtctransform({transformer: data.rtctransform}); /* needed by chrome shim: */
+  };
 
-function timestampOverlay(encodedFrame, controller) {
-      controller.enqueue(encodedFrame);
+  onrtctransform = async ({transformer: {readable, writable, options}}) => {
+    await readable.pipeThrough(new TransformStream({transform})).pipeTo(writable);
+
+    function transform(chunk, controller) {
+      const bytes = new Uint8Array(chunk.data);
+      const offset = 4; /* leave the first 4 bytes alone in VP8 */
+      for (let i = offset; i < bytes.length; i++) {
+        bytes[i] = ~bytes[i]; /* XOR the rest */
+      }
+      if (options.side == "receive" && !descramble) {
+        for (let i = offset+10; i < offset+12; i++) {
+          bytes[i] = ~bytes[i]; /* reverse a few XOR for spectacle */
+        }
+      }
+      controller.enqueue(chunk);
+    }
+  };
 }
-
 function createPeerConnection() {
     var config = {
-        sdpSemantics: 'unified-plan'
+        sdpSemantics: 'unified-plan',
+        encodedInsertableStreams: true, // needed by chrome shim
     };
 
     if (document.getElementById('use-stun').checked) {
@@ -233,12 +254,16 @@ function start() {
                 // No tranform:
                 const videoSender = pc.addTrack(track, stream);
 
-                // Send with overlay:
+                console.log(videoSender);
+                console.log(worker);
+                //videoSender.transform = new RTCRtpScriptTransform(worker, {side: "send"});
+                //console.log(videoSender);
+                // // Send with overlay:
                 // const worker = new Worker("worker.js");
-                // videoSender.transform 
-                t = new RTCRtpScriptTransform(worker, { name: "senderTransform", });
-                console.print(t);
-                // console.log(videoSender);
+                // const t = new RTCRtpScriptTransform(worker, { name: "senderTransform", });
+                // console.log(t);
+                // videoSender.transform  = t;
+                // // console.log(videoSender);
                 
             });
             return negotiate();
@@ -343,3 +368,8 @@ function escapeRegExp(string) {
 }
 
 enumerateInputDevices();
+
+// const worker = new Worker("timecode.js");
+// console.log(worker);
+//
+

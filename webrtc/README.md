@@ -1,4 +1,9 @@
-Code from https://github.com/aiortc/aiortc/blob/main/examples/server/server.py
+# WebRTC server
+
+This is a demo of WebRTC streaming and latency measurement.
+
+
+
 
 
 
@@ -16,4 +21,8 @@ Without much optimization, the `preprocessing` function takes a comulative time 
 For post processing, the type conversion is the most expensive operation.
 
 In general, such workload (without profiling) uses around 10 cores (nslrack27+T4).
+
+# Source
+
+Code from https://github.com/aiortc/aiortc/blob/main/examples/server/server.py
 

@@ -1,12 +1,8 @@
 # This is just a convenience wrapper to the openrtist torch implementation
 
-
 import os
 import sys
 import inspect
-import torch
-from torchvision import transforms
-from torch import nn
 import datetime as dt
 import numpy as np
 import empty_transformer
@@ -22,6 +18,13 @@ tt = time_tracker.get()
 class OpenrtistTransformer(empty_transformer.EmptyTransformer):
     def __init__(self, model_name = "mosaic", models_path="../openrtist/models", device = "cpu"):
 
+
+        # We import elements here so we don't fail if there is 
+        # no torch support (e.g. minimal local development copy)
+
+        import torch
+        from torchvision import transforms
+        from torch import nn
 
         if device == "cuda":
             torch.cuda.init()

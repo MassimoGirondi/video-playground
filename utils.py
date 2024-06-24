@@ -1,20 +1,24 @@
-import torch
 import numpy as np
 import glob
-from torch.autograd import Variable
+import os
+
+if "NO_TORCH" in os.environ:
+    import torch
+    from torch.autograd import Variable
+    from torchvision.transforms import v2
+    from transformer_net import TransformerNet
+    from torchvision import transforms
+    content_transform = transforms.Compose([transforms.ToTensor()])
+
 from pathlib import Path
 import datetime as dt
 import random
 from tqdm import tqdm
 
-from torchvision import transforms
 import PIL
 import re
 
-from torchvision.transforms import v2
 from multiprocessing import Process
-from transformer_net import TransformerNet   
-content_transform = transforms.Compose([transforms.ToTensor()])
 
 def preprocessing(img):
     content_image = content_transform(img)
