@@ -23,8 +23,9 @@ dprint("Loading input frames")
 #frames = load_images(n=SAMPLES, randomize=True)
 frames = FrameDataset(name="bbb", n=SAMPLES, device = gpu)
 dprint("Loading model")
-#model = load_model("mosaic")
-model = empty_model.EmptyModel()
+model_name = "mosaic"
+model = load_model(model_name)
+#model = empty_model.EmptyModel()
 
 model.eval()
 
@@ -53,8 +54,10 @@ for j, dtype in enumerate(types):
         traceback.print_exc()
 
 plt.tight_layout()
+fig.suptitle(f"{model_name} on {torch.cuda.get_device_properties(gpu.index).name}")
 plt.savefig("dtypes-preview.png")
 
+exit(0)
 dprint("Benchmark time!")
 
 
@@ -79,4 +82,5 @@ plt.xticks(np.arange(1, len(all_times.keys()) + 1), labels=all_times.keys())
 plt.tight_layout()
 plt.xlabel("type")
 plt.ylabel("time (ms)")
+fig.suptitle(f"{model_name} on {torch.cuda.get_device_properties(gpu.index).name}")
 plt.savefig("dtypes-times.pdf")

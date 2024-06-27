@@ -1,0 +1,3 @@
+[submodule "openrtist"]
+	path = openrtist
+	url = https://github.com/samiemostafavi/openrtist

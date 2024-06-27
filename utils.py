@@ -2,7 +2,7 @@ import numpy as np
 import glob
 import os
 
-if "NO_TORCH" in os.environ:
+if not "NO_TORCH" in os.environ:
     import torch
     from torch.autograd import Variable
     from torchvision.transforms import v2
