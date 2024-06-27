@@ -1,3 +1,15 @@
+import os 
+import inspect
+import sys
+from pathlib import Path
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+sys.path.insert(0, str(Path(parentdir) / "transformers"))
+print(sys.path)
+
+from video_transformer import VideoTransformTrack
 import openrtist_transformer
 import edge_transformer
 import empty_transformer
