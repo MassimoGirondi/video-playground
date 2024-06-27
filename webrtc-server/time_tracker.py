@@ -1,4 +1,5 @@
 import datetime as dt
+import pandas as pd
 class TimeTracker():
 
     def __init__(self):
@@ -41,6 +42,8 @@ class TimeTracker():
         self.store(key)
         self.start()
 
+
+
 instance = None
 def get():
     global instance
@@ -48,3 +51,11 @@ def get():
         print("Creating a new Time Tracker")
         instance = TimeTracker()
     return instance
+
+def dump(where):
+    global instance
+    if instance:
+        # Assuming all elements are equally long
+        df = pd.DataFrame(instance.times)
+        df.to_csv(where)
+
