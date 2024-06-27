@@ -1,0 +1,9 @@
+selenium
+tqdm
+pandas
+pytesseract
+numpy
+scipy
+matplotlib
+opencv-python
+
