@@ -21,7 +21,7 @@ if not "NO_TORCH" in os.environ:
     from torch import nn
 
 
-class OpenrtistTransformer(empty_transformer.EmptyTransformer):
+class OpenrtistTransformerSYNC(empty_transformer.EmptyTransformer):
     def __init__(self, model_name = "mosaic", models_path="../openrtist/models", device = "cpu"):
 
 
@@ -57,8 +57,12 @@ class OpenrtistTransformer(empty_transformer.EmptyTransformer):
     def __call__(self, frame):
         f = self.preprocessing(frame)
         tt.step("oa_pre")
+        torch.cuda.synchronize()
+        tt.step("oa_sync1")
         f = self.model(f)
         tt.step("oa_model")
+        torch.cuda.synchronize()
+        tt.step("oa_sync2")
         f = self.postprocessing(f)
         tt.step("oa_post")
         sm_usage, mem_usage = utils.gpu_usage()

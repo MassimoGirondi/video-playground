@@ -10,6 +10,9 @@ if not "NO_TORCH" in os.environ:
     from torchvision import transforms
     content_transform = transforms.Compose([transforms.ToTensor()])
 
+    # Here so we solve the issue of "NO CUDA" - we can assume we are interested only when there is torch
+    import GPUtil
+
 from pathlib import Path
 import datetime as dt
 import random
@@ -127,3 +130,19 @@ def parallel_for(task, args, max_processes):
             process.start()
         for process in this_p:
             process.join()
+
+
+gpu_usage_frames = 0
+last_usage = 0,0
+gputil_device = None
+def gpu_usage(every=25, device_id=0):
+    global gpu_usage_frames, gputil_device, last_usage
+    gpu_usage_frames+=1
+    if gpu_usage_frames < every:
+        return last_usage
+    gpu_usage_frames = 0
+    if not gputil_device:
+        gputil_device = GPUtil.getGPUs()[0]
+
+    last_usage = gputil_device.load, gputil_device.memoryUtil
+    return last_usage

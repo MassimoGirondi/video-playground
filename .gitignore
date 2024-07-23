@@ -4,3 +4,4 @@
 conda/
 virtualenv
 venv
+inputs/

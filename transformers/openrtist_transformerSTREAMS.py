@@ -6,6 +6,7 @@ import inspect
 import datetime as dt
 import numpy as np
 import empty_transformer
+from collections import deque
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -21,12 +22,8 @@ if not "NO_TORCH" in os.environ:
     from torch import nn
 
 
-class OpenrtistTransformer(empty_transformer.EmptyTransformer):
-    def __init__(self, model_name = "mosaic", models_path="../openrtist/models", device = "cpu"):
-
-
-        # We import elements here so we don't fail if there is 
-        # no torch support (e.g. minimal local development copy)
+class OpenrtistTransformerSTREAMS(empty_transformer.EmptyTransformer):
+    def __init__(self, model_name = "mosaic", models_path="../openrtist/models", device = "cpu", streams = 3, events=1024):
 
 
         if device == "cuda":
@@ -38,6 +35,10 @@ class OpenrtistTransformer(empty_transformer.EmptyTransformer):
         self.model = utils.load_model(model_name, models_path="../openrtist/models").to(torch.float16)
         self.model.eval()
         self.totensor=transforms.ToTensor()
+        self.copy_input_stream = torch.cuda.Stream()
+        self.model_stream = torch.cuda.Stream()
+        self.copy_output_stream = torch.cuda.Stream()
+        self.events = deque([torch.cuda.Event(enable_timing=False) for i in range(events)])
         tt.times["sm_usage"] = []
         tt.times["mem_usage"] = []
 
@@ -55,13 +56,29 @@ class OpenrtistTransformer(empty_transformer.EmptyTransformer):
         return img.numpy().astype(np.uint8)
 
     def __call__(self, frame):
-        f = self.preprocessing(frame)
-        tt.step("oa_pre")
-        f = self.model(f)
-        tt.step("oa_model")
-        f = self.postprocessing(f)
-        tt.step("oa_post")
+        copy_input_event = self.events.popleft()
+        model_event = self.events.popleft()
+        copy_output_event = self.events.popleft()
+
+
+        with torch.cuda.stream(self.copy_input_stream): 
+            f = self.preprocessing(frame)
+            copy_input_event.record(self.copy_input_stream)
+        with torch.cuda.stream(self.model_stream):
+            copy_input_event.wait(self.model_stream)
+            f = self.model(f)
+            model_event.record(self.model_stream)
+        with torch.cuda.stream(self.copy_output_stream):
+            model_event.wait(self.model_stream)
+            f = self.postprocessing(f)
+
+        self.events.append(copy_input_event)
+        self.events.append(copy_output_event)
+        self.events.append(model_event)
         sm_usage, mem_usage = utils.gpu_usage()
         tt.times["sm_usage"].append(sm_usage)
         tt.times["mem_usage"].append(mem_usage)
         return f
+
+
+

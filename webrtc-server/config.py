@@ -10,6 +10,8 @@ sys.path.insert(0, str(Path(parentdir) / "transformers"))
 
 from video_transformer import VideoTransformTrack
 import openrtist_transformer
+import openrtist_transformerSYNC
+import openrtist_transformerSTREAMS
 import edge_transformer
 import empty_transformer
 
@@ -18,6 +20,14 @@ models = {
     'mosaic': { 'class': openrtist_transformer.OpenrtistTransformer,
                 'args': {'model_name' : 'mosaic'},
                 'description': "Openrtist Mosaic", 
+               },
+    'mosaic-sync': { 'class': openrtist_transformerSYNC.OpenrtistTransformerSYNC,
+                'args': {'model_name' : 'mosaic'},
+                'description': "Openrtist Mosaic SYNC", 
+               },
+    'mosaic-streams': { 'class': openrtist_transformerSTREAMS.OpenrtistTransformerSTREAMS,
+                'args': {'model_name' : 'mosaic'},
+                'description': "Openrtist Mosaic STREAMS", 
                },
     'passthrough' : {'class': empty_transformer.EmptyTransformer,
                      'description': "Passthrough", 

@@ -28,6 +28,7 @@ class TimeTracker():
         return s
 
     def reset(self):
+        print(self.times)
         for k in self.times:
             self.times[k] = []
 
