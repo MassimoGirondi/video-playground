@@ -2,21 +2,13 @@
 
 A collection of tests and benchmark for ML/AI applied to videos.
 
+These are to be used to "explore" the field, and understand some of the mechanisms behind video transmission, and processing, over the network.
 
-## TODO
-
-What is that we are actually doing here?
+Most of these files are likely to be bugged or broken, please don't use them in production without understanding what they do!
 
 
-# Install
+# License
 
-`virtualenv` should be enough, and all deps could be installed via `pip3 install -r requirements.txt`
+(C) 2024 Massimo Girondi girondi@kth.se GNU GPL v3
 
-Else, via conda:
-
-- First, get yourself a conda installation
-- Activate it (if you don't have it in your .bashrc/.zshrc: `source ~/sw/anaconda3/zsh_init`
-- Then create an environment: `conda create python=3.11 --prefix ./conda`
-- Activate it: `conda activate /home/massimo/prj/ml/video/conda`
-- Install things: `pip3 install -r requirements.txt`
--
+See [LICENSE](LICENSE).
